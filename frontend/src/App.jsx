@@ -10,7 +10,7 @@ import ReportPanel  from './components/ReportPanel';
 import SamplePickerModal from './components/SamplePickerModal';
 
 const API      = '/analyze-image';
-const IMG_BASE = 'http://localhost:8000';
+const IMG_BASE = '';
 
 export default function App() {
   const [file, setFile]         = useState(null);
