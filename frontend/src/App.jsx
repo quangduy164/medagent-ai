@@ -7,6 +7,7 @@ import logo   from './assets/logo.png';
 import UploadCard   from './components/UploadCard';
 import AnalysisCard from './components/AnalysisCard';
 import ReportPanel  from './components/ReportPanel';
+import SamplePickerModal from './components/SamplePickerModal';
 
 const API      = '/analyze-image';
 const IMG_BASE = 'http://localhost:8000';
@@ -20,6 +21,7 @@ export default function App() {
   const [errorKey, setErrorKey] = useState(null); // key vào i18n, tự đổi theo lang
   const [lang, setLang]         = useState('vi'); // mặc định tiếng Việt
   const [report, setReport]     = useState(null);
+  const [showSamples, setShowSamples] = useState(false);
   const inputRef                = useRef();
   const t = translations[lang];
 
@@ -79,6 +81,26 @@ export default function App() {
     img.src = url;
   });
 
+  // Chọn ảnh mẫu từ URL — bỏ qua checkIsXray vì đây là ảnh X-quang đã được kiểm duyệt
+  const handleSampleSelect = async (url, filename) => {
+    setShowSamples(false);
+    setResult(null);
+    setReport(null);
+    setError(null);
+    setErrorKey(null);
+    try {
+      // url là đường dẫn tương đối, proxy sẽ forward về backend
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const f = new File([blob], filename, { type: blob.type || 'image/png' });
+      setFile(f);
+      setPreview(URL.createObjectURL(blob));
+    } catch (e) {
+      setError(`Không thể tải ảnh mẫu: ${e.message}`);
+    }
+  };
+
   const handleFile = async (f) => {
     if (!f) return;
     setResult(null);
@@ -131,15 +153,23 @@ export default function App() {
 
   const uploadProps = {
     t, preview, file, loading,
-    error: errorMsg, // truyền errorMsg đã resolve theo lang
+    error: errorMsg,
     inputRef,
-    onFileChange: (e) => handleFile(e.target.files[0]),
-    onDrop:       (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); },
-    onAnalyze:    handleAnalyze,
+    onFileChange:   (e) => handleFile(e.target.files[0]),
+    onDrop:         (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); },
+    onAnalyze:      handleAnalyze,
+    onOpenSamples:  () => setShowSamples(true),
   };
 
   return (
     <div className="app">
+      {showSamples && (
+        <SamplePickerModal
+          t={t}
+          onSelect={handleSampleSelect}
+          onClose={() => setShowSamples(false)}
+        />
+      )}
       <header className="header">
         <div className="header-brand">
           <img src={logo} alt="MedAgent AI" className="header-logo" />

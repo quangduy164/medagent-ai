@@ -10,6 +10,8 @@ const translations = {
     uploadClick: 'click to select',
     uploadSub: 'PNG, JPG supported',
     notXray: 'Please upload a valid chest X-ray image. Color photos are not supported.',
+    samplePickerTitle: 'Select a Sample X-Ray',
+    orChooseSample: 'or choose a sample',
     analyzeBtn: 'Analyze',
     analyzing: 'Analyzing...',
 
@@ -62,6 +64,8 @@ const translations = {
     uploadClick: 'nhấn để chọn file',
     uploadSub: 'Hỗ trợ PNG, JPG',
     notXray: 'Vui lòng tải lên ảnh X-quang ngực hợp lệ. Ảnh màu thông thường không được hỗ trợ.',
+    samplePickerTitle: 'Chọn ảnh X-quang mẫu',
+    orChooseSample: 'hoặc chọn ảnh mẫu',
     analyzeBtn: 'Phân Tích',
     analyzing: 'Đang phân tích...',
 

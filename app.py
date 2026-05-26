@@ -18,12 +18,17 @@ app.add_middleware(
     allow_origins=["http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 UPLOAD_DIR = "uploads"
 OUTPUT_DIR = "outputs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Serve test_samples — phải mount TRƯỚC middleware để CORS áp dụng đúng
+TEST_SAMPLES_DIR = "test_samples"
+os.makedirs(TEST_SAMPLES_DIR, exist_ok=True)
 
 # Serve ảnh output (heatmap, result)
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
@@ -36,6 +41,35 @@ if os.path.exists(FRONTEND_BUILD):
 print("⏳ Starting Server & Loading Multi-Agent System...")
 ai_agent  = MedicalAgentOrchestrator()
 _decoder  = BioGPTDecoder()
+
+
+@app.get("/test-samples-static/{category}/{filename}")
+async def serve_test_sample(category: str, filename: str):
+    """Serve ảnh mẫu với CORS header đúng."""
+    file_path = os.path.join(TEST_SAMPLES_DIR, category, filename)
+    if not os.path.exists(file_path):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(file_path)
+
+
+@app.get("/test-samples")
+async def get_test_samples():
+    """Trả về danh sách ảnh mẫu theo category."""
+    result = {}
+    if not os.path.exists(TEST_SAMPLES_DIR):
+        return JSONResponse(result)
+    for category in sorted(os.listdir(TEST_SAMPLES_DIR)):
+        cat_path = os.path.join(TEST_SAMPLES_DIR, category)
+        if not os.path.isdir(cat_path):
+            continue
+        images = [
+            f"/test-samples-static/{category}/{fname}"
+            for fname in sorted(os.listdir(cat_path))
+            if fname.lower().endswith((".png", ".jpg", ".jpeg"))
+        ]
+        if images:
+            result[category] = images
+    return JSONResponse(result)
 
 
 @app.get("/")

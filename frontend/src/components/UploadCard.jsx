@@ -1,7 +1,10 @@
 import React from 'react';
 import analyzeIcon from '../assets/analyze_icon.png';
 
-export default function UploadCard({ t, preview, file, loading, error, inputRef, onFileChange, onDrop, onAnalyze }) {
+export default function UploadCard({
+  t, preview, file, loading, error, inputRef,
+  onFileChange, onDrop, onAnalyze, onOpenSamples,
+}) {
   return (
     <section className="card upload-card">
       <h2>{t.uploadTitle}</h2>
@@ -20,10 +23,18 @@ export default function UploadCard({ t, preview, file, loading, error, inputRef,
             </div>
         }
       </div>
+
       <input ref={inputRef} type="file" accept="image/*"
         style={{ display: 'none' }}
         onChange={onFileChange} />
+
+      {/* Nút chọn ảnh mẫu */}
+      <button className="btn-sample" onClick={onOpenSamples} type="button">
+        🗂 {t.orChooseSample}
+      </button>
+
       {file && <p className="filename">📄 {file.name}</p>}
+
       <button className="btn-analyze" onClick={onAnalyze} disabled={!file || loading}>
         {loading
           ? <><span className="spinner" /> {t.analyzing}</>

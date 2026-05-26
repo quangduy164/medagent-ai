@@ -248,7 +248,9 @@ def generate_prompt(
 
     key = diagnosis if diagnosis in templates else "No Finding"
 
-    findings   = _fill(random.choice(templates[key]), location, size, side)
+    # Dùng hash của diagnosis làm seed để luôn chọn cùng template cho cùng 1 ảnh
+    rng = random.Random(hash(diagnosis))
+    findings   = _fill(rng.choice(templates[key]), location, size, side)
     impression = _fill(impressions.get(key, impressions["No Finding"]), location, size, side)
 
     label_f = "Kết quả:" if lang == "vi" else "Findings:"
