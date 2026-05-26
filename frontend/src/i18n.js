@@ -9,6 +9,7 @@ const translations = {
     uploadHint: 'Drag & drop or',
     uploadClick: 'click to select',
     uploadSub: 'PNG, JPG supported',
+    notXray: 'Please upload a valid chest X-ray image. Color photos are not supported.',
     analyzeBtn: 'Analyze',
     analyzing: 'Analyzing...',
 
@@ -60,6 +61,7 @@ const translations = {
     uploadHint: 'Kéo thả hoặc',
     uploadClick: 'nhấn để chọn file',
     uploadSub: 'Hỗ trợ PNG, JPG',
+    notXray: 'Vui lòng tải lên ảnh X-quang ngực hợp lệ. Ảnh màu thông thường không được hỗ trợ.',
     analyzeBtn: 'Phân Tích',
     analyzing: 'Đang phân tích...',
 

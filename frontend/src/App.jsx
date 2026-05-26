@@ -12,15 +12,19 @@ const API      = '/analyze-image';
 const IMG_BASE = 'http://localhost:8000';
 
 export default function App() {
-  const [file, setFile]       = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [result, setResult]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
-  const [lang, setLang]       = useState('en');
-  const [report, setReport]   = useState(null);
-  const inputRef              = useRef();
+  const [file, setFile]         = useState(null);
+  const [preview, setPreview]   = useState(null);
+  const [result, setResult]     = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [errorKey, setErrorKey] = useState(null); // key vào i18n, tự đổi theo lang
+  const [lang, setLang]         = useState('vi'); // mặc định tiếng Việt
+  const [report, setReport]     = useState(null);
+  const inputRef                = useRef();
   const t = translations[lang];
+
+  // error message: nếu có errorKey thì lấy từ i18n (tự đổi khi đổi lang)
+  const errorMsg = errorKey ? t[errorKey] : error;
 
   useEffect(() => {
     if (result) setReport(result.report);
@@ -42,26 +46,75 @@ export default function App() {
       .catch(() => {});
   }, [lang]); // eslint-disable-line
 
-  const handleFile = (f) => {
+  const checkIsXray = (f) => new Promise((resolve) => {
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 200;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, size, size);
+      const { data } = ctx.getImageData(0, 0, size, size);
+      let saturatedPixels = 0;
+      const total = size * size;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const lightness = (max + min) / 2;
+        // Tính saturation theo HSL
+        const sat = (max === min) ? 0
+          : lightness < 0.5
+            ? (max - min) / (max + min)
+            : (max - min) / (2 - max - min);
+        // Pixel có màu rõ: saturation > 15% và không quá tối/sáng
+        if (sat > 0.15 && lightness > 0.1 && lightness < 0.95) saturatedPixels++;
+      }
+      URL.revokeObjectURL(url);
+      // X-quang thật: < 8% pixel có màu; ảnh thường: thường > 8%
+      resolve(saturatedPixels / total < 0.08);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(false); };
+    img.src = url;
+  });
+
+  const handleFile = async (f) => {
     if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
     setResult(null);
     setReport(null);
     setError(null);
+    setErrorKey(null);
+    const isXray = await checkIsXray(f);
+    if (!isXray) {
+      setFile(null);
+      setPreview(null);
+      setErrorKey('notXray'); // lưu key, không lưu string cứng
+      return;
+    }
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
   };
 
   const handleAnalyze = async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setErrorKey(null);
     setResult(null);
     try {
       const form = new FormData();
       form.append('file', file);
       const res  = await fetch(`${API}?lang=${lang}`, { method: 'POST', body: form });
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Server error');
+      if (!json.success) {
+        if (json.error_code === 'not_xray') {
+          setErrorKey('notXray');
+        } else {
+          throw new Error(json.error || 'Server error');
+        }
+        return;
+      }
       setResult(json.data);
     } catch (e) {
       setError(e.message);
@@ -77,7 +130,9 @@ export default function App() {
   const isAbnormal = result && result.status !== 'Normal';
 
   const uploadProps = {
-    t, preview, file, loading, error, inputRef,
+    t, preview, file, loading,
+    error: errorMsg, // truyền errorMsg đã resolve theo lang
+    inputRef,
     onFileChange: (e) => handleFile(e.target.files[0]),
     onDrop:       (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); },
     onAnalyze:    handleAnalyze,

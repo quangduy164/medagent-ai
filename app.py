@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import shutil
+import numpy as np
+from PIL import Image as PILImage
 from agents.orchestrator import MedicalAgentOrchestrator
 from models.bridge import generate_prompt
 from models.decoder import BioGPTDecoder
@@ -44,11 +46,46 @@ async def serve_frontend():
     return {"message": "API is running. Frontend not built yet."}
 
 
+def is_xray_image(path: str) -> bool:
+    """Kiểm tra ảnh có phải X-quang không dựa trên HSL saturation."""
+    try:
+        img = PILImage.open(path).convert("RGB").resize((200, 200))
+        arr = np.array(img, dtype=np.float32) / 255.0
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+        max_c = np.max(arr, axis=2)
+        min_c = np.min(arr, axis=2)
+        lightness = (max_c + min_c) / 2
+        diff = max_c - min_c
+        # Saturation theo HSL
+        sat = np.where(
+            diff == 0, 0,
+            np.where(lightness < 0.5,
+                     diff / (max_c + min_c + 1e-8),
+                     diff / (2 - max_c - min_c + 1e-8))
+        )
+        # Pixel có màu rõ: sat > 15% và không quá tối/sáng
+        saturated = (sat > 0.15) & (lightness > 0.1) & (lightness < 0.95)
+        color_ratio = np.mean(saturated)
+        return color_ratio < 0.08
+    except Exception:
+        return False
+
+
 @app.post("/analyze-image")
 async def analyze_image(file: UploadFile = File(...), lang: str = "en"):
     image_path = os.path.join(UPLOAD_DIR, file.filename)
     with open(image_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
+
+    if not is_xray_image(image_path):
+        os.remove(image_path)
+        msg = (
+            "Vui lòng tải lên ảnh X-quang ngực hợp lệ. Ảnh màu thông thường không được hỗ trợ."
+            if lang == "vi"
+            else "Please upload a valid chest X-ray image. Color photos are not supported."
+        )
+        return JSONResponse({"success": False, "error": msg, "error_code": "not_xray"}, status_code=400)
+
     try:
         result = ai_agent.analyze(image_path, OUTPUT_DIR, lang=lang)
         return JSONResponse({"success": True, "data": result})
