@@ -15,7 +15,7 @@ app = FastAPI(title="AI Medical Vision Agent API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:8000", "http://70.153.24.175", "http://70.153.24.175:8000"],
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
