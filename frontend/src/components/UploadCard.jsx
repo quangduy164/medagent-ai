@@ -30,7 +30,7 @@ export default function UploadCard({
 
       {/* Nút chọn ảnh mẫu */}
       <button className="btn-sample" onClick={onOpenSamples} type="button">
-        🗂 {t.orChooseSample}
+        {t.orChooseSample}
       </button>
 
       {file && <p className="filename">📄 {file.name}</p>}
