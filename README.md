@@ -7,9 +7,9 @@ Hệ thống phân tích ảnh X-quang ngực tự động sử dụng kiến tr
 ## Kiến trúc hệ thống
 
 ```
-Ảnh X-quang
-     │
-     ▼
+    Ảnh X-quang
+         │
+         ▼
 ┌─────────────────┐
 │   Vision Agent  │  classify → segment → gradcam
 └────────┬────────┘
